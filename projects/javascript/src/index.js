@@ -17,134 +17,193 @@ Step 4: To try out cursor on your own projects, go to the file menu (top left) a
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 
-// 四目並べコンポーネント
-function TicTacToe() {
-  const [board, setBoard] = React.useState(Array(48).fill("")); // 8×6マス
-  const [currentPlayer, setCurrentPlayer] = React.useState("X");
-  const [winner, setWinner] = React.useState(null);
+function CryptoGame() {
+  const [numbers, setNumbers] = React.useState([]);  // 手段の数字5枚
+  const [target, setTarget] = React.useState(null);  // 目的の数字
+  const [formula, setFormula] = React.useState('');  // プレイヤーの計算式
+  const [gameState, setGameState] = React.useState('start');  // start, playing, checking, won
+  const [score, setScore] = React.useState(0);
+  const [consecutiveWins, setConsecutiveWins] = React.useState(0);
 
-  // 勝者判定
-  const checkWinner = (squares) => {
-    // 横のチェック
-    for (let row = 0; row < 6; row++) {
-      for (let col = 0; col < 5; col++) {
-        const index = row * 8 + col;
-        if (squares[index] && 
-            squares[index] === squares[index + 1] && 
-            squares[index] === squares[index + 2] &&
-            squares[index] === squares[index + 3]) {
-          return squares[index];
-        }
-      }
+  // カードデッキの生成（1-25の数字）
+  const generateDeck = () => {
+    const deck = [];
+    // 1-6は各3枚
+    for (let i = 1; i <= 6; i++) {
+      for (let j = 0; j < 3; j++) deck.push(i);
     }
-
-    // 縦のチェック
-    for (let row = 0; row < 3; row++) {
-      for (let col = 0; col < 8; col++) {
-        const index = row * 8 + col;
-        if (squares[index] &&
-            squares[index] === squares[index + 8] &&
-            squares[index] === squares[index + 16] &&
-            squares[index] === squares[index + 24]) {
-          return squares[index];
-        }
-      }
+    // 7-10は各3枚
+    for (let i = 7; i <= 10; i++) {
+      for (let j = 0; j < 3; j++) deck.push(i);
     }
-
-    // 斜め（右下）のチェック
-    for (let row = 0; row < 3; row++) {
-      for (let col = 0; col < 5; col++) {
-        const index = row * 8 + col;
-        if (squares[index] &&
-            squares[index] === squares[index + 9] &&
-            squares[index] === squares[index + 18] &&
-            squares[index] === squares[index + 27]) {
-          return squares[index];
-        }
-      }
+    // 11-17は各2枚
+    for (let i = 11; i <= 17; i++) {
+      for (let j = 0; j < 2; j++) deck.push(i);
     }
-
-    // 斜め（左下）のチェック
-    for (let row = 0; row < 3; row++) {
-      for (let col = 3; col < 8; col++) {
-        const index = row * 8 + col;
-        if (squares[index] &&
-            squares[index] === squares[index + 7] &&
-            squares[index] === squares[index + 14] &&
-            squares[index] === squares[index + 21]) {
-          return squares[index];
-        }
-      }
+    // 18-25は各1枚
+    for (let i = 18; i <= 25; i++) {
+      deck.push(i);
     }
-
-    return null;
+    return deck;
   };
 
-  // マス目クリック時の処理
-  const handleClick = (index) => {
-    if (board[index] || winner) return;
-
-    const newBoard = [...board];
-    newBoard[index] = currentPlayer;
-    setBoard(newBoard);
-
-    const newWinner = checkWinner(newBoard);
-    if (newWinner) {
-      setWinner(newWinner);
-    } else {
-      setCurrentPlayer(currentPlayer === "X" ? "O" : "X");
+  // 新しいゲームの開始
+  const startNewGame = () => {
+    const deck = generateDeck();
+    // デッキをシャッフル
+    for (let i = deck.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [deck[i], deck[j]] = [deck[j], deck[i]];
     }
+    
+    setNumbers(deck.slice(0, 5));  // 最初の5枚
+    setTarget(deck[5]);  // 6枚目
+    setFormula('');
+    setGameState('playing');
   };
 
-  // ゲームリセット
-  const resetGame = () => {
-    setBoard(Array(48).fill(""));
-    setCurrentPlayer("X");
-    setWinner(null);
+  // 計算式の評価
+  const evaluateFormula = () => {
+    try {
+      // 使用された数字をチェック
+      const usedNumbers = formula.match(/\d+/g).map(Number);
+      const sortedNumbers = [...numbers].sort((a, b) => a - b);
+      const sortedUsedNumbers = [...usedNumbers].sort((a, b) => a - b);
+      
+      if (JSON.stringify(sortedNumbers) !== JSON.stringify(sortedUsedNumbers)) {
+        alert('与えられた5つの数字をすべて1回ずつ使用してください');
+        return;
+      }
+
+      const result = eval(formula);
+      if (result === target) {
+        const points = Math.pow(2, consecutiveWins);
+        setScore(score + points);
+        setConsecutiveWins(consecutiveWins + 1);
+        setGameState('won');
+      } else {
+        setConsecutiveWins(0);
+        alert('不正解です。もう一度試してください。');
+      }
+    } catch (e) {
+      alert('正しい計算式を入力してください');
+    }
   };
 
   return (
-    <div style={{ textAlign: 'center', marginTop: '20px' }}>
-      <h1>四目並べ</h1>
-      <div style={{ display: 'inline-block' }}>
-        {[0, 1, 2, 3, 4, 5].map((row) => (
-          <div key={row} style={{ display: 'flex' }}>
-            {[0, 1, 2, 3, 4, 5, 6, 7].map((col) => {
-              const index = row * 8 + col;
-              return (
-                <button
+    <div style={{ 
+      textAlign: 'center', 
+      maxWidth: '800px', 
+      margin: '0 auto', 
+      padding: '20px' 
+    }}>
+      <h1>クリプト</h1>
+      <div style={{ marginBottom: '20px' }}>
+        <p>スコア: {score} (連続勝利: {consecutiveWins})</p>
+      </div>
+
+      {gameState === 'start' && (
+        <div>
+          <p>5つの数字を使って、目標の数字を作りましょう！</p>
+          <button 
+            onClick={startNewGame}
+            style={{
+              padding: '10px 20px',
+              fontSize: '16px',
+              backgroundColor: '#4CAF50',
+              color: 'white',
+              border: 'none',
+              borderRadius: '5px',
+              cursor: 'pointer'
+            }}
+          >
+            ゲームスタート
+          </button>
+        </div>
+      )}
+
+      {(gameState === 'playing' || gameState === 'won') && (
+        <div>
+          <div style={{ marginBottom: '20px' }}>
+            <h3>手持ちの数字:</h3>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
+              {numbers.map((num, index) => (
+                <div 
                   key={index}
-                  onClick={() => handleClick(index)}
                   style={{
                     width: '50px',
                     height: '50px',
-                    margin: '2px',
+                    backgroundColor: '#f0f0f0',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     fontSize: '24px',
-                    color: board[index] === 'X' ? 'red' : 'blue'
+                    borderRadius: '5px'
                   }}
                 >
-                  {board[index]}
-                </button>
-              );
-            })}
+                  {num}
+                </div>
+              ))}
+            </div>
           </div>
-        ))}
-      </div>
-      <div style={{ marginTop: '20px' }}>
-        {winner ? (
-          <div>
-            <p>プレイヤー{winner}の勝利です！</p>
-            <button onClick={resetGame}>もう一度プレイ</button>
+
+          <div style={{ marginBottom: '20px' }}>
+            <h3>目標の数字: {target}</h3>
           </div>
-        ) : board.every(cell => cell) ? (
-          <div>
-            <p>引き分けです！</p>
-            <button onClick={resetGame}>もう一度プレイ</button>
-          </div>
-        ) : (
-          <p>プレイヤー{currentPlayer}の番です</p>
-        )}
-      </div>
+
+          {gameState === 'playing' && (
+            <div style={{ marginBottom: '20px' }}>
+              <input
+                type="text"
+                value={formula}
+                onChange={(e) => setFormula(e.target.value)}
+                style={{
+                  padding: '10px',
+                  fontSize: '16px',
+                  width: '300px',
+                  marginRight: '10px'
+                }}
+                placeholder="計算式を入力 (例: 2+3*4-1/5)"
+              />
+              <button 
+                onClick={evaluateFormula}
+                style={{
+                  padding: '10px 20px',
+                  fontSize: '16px',
+                  backgroundColor: '#2196F3',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer'
+                }}
+              >
+                確認
+              </button>
+            </div>
+          )}
+
+          {gameState === 'won' && (
+            <div>
+              <h2>正解！</h2>
+              <p>おめでとうございます！</p>
+              <button 
+                onClick={startNewGame}
+                style={{
+                  padding: '10px 20px',
+                  fontSize: '16px',
+                  backgroundColor: '#4CAF50',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '5px',
+                  cursor: 'pointer'
+                }}
+              >
+                次のゲームへ
+              </button>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -153,7 +212,7 @@ function TicTacToe() {
 function App() {
   return (
     <div className="App">
-      <TicTacToe />
+      <CryptoGame />
     </div>
   );
 }
